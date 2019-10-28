@@ -1,0 +1,186 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  annotations:
+    operator.synopsys.com/group-dependencies: "ConfigMap,AlertSecret"
+  labels:
+    operator.synopsys.com/group-id: "Alert"
+    app: alert
+    name: {{ .Values.instancename }}
+  name: {{ .Values.instancename }}-alert
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: 1
+  selector:
+    app: alert
+    name: {{ .Values.instancename }}
+  template:
+    metadata:
+      labels:
+        app: alert
+        name: {{ .Values.instancename }}
+      name: {{ .Values.instancename }}-alert
+    spec:
+      containers:
+        - envFrom:
+            - configMapRef:
+                name: {{ .Values.instancename }}-blackduck-alert-config
+            - secretRef:
+                name: {{ .Values.instancename }}-alert-secret
+          image: {{ .Values.alertimage }}
+          imagePullPolicy: Always
+          livenessProbe:
+            exec:
+              command:
+                - /usr/local/bin/docker-healthcheck.sh
+                - https://localhost:8443/alert/api/about
+            failureThreshold: 5
+            initialDelaySeconds: 240
+            periodSeconds: 30
+            timeoutSeconds: 10
+          name: blackduck-alert
+          ports:
+            - containerPort: 8443
+              protocol: TCP
+          resources:
+            limits:
+              memory: {{ .Values.alertmem }}
+            requests:
+              memory: {{ .Values.alertmem }}
+          volumeMounts:
+            - mountPath: /opt/blackduck/alert/alert-config
+              name: dir-alert
+      dnsPolicy: ClusterFirst
+      volumes:
+        - emptyDir: {}
+          name: dir-alert
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    operator.synopsys.com/group-dependencies: "ConfigMap,AlertSecret"
+  labels:
+    operator.synopsys.com/group-id: "Alert"
+    app: alert
+    name: {{ .Values.instancename }}
+  name: {{ .Values.instancename }}-alert
+  namespace: {{ .Values.namespace }}
+spec:
+  ports:
+    - name: port-8443
+      port: 8443
+      protocol: TCP
+      targetPort: 8443
+  selector:
+    app: alert
+    name: {{ .Values.instancename }}
+  type: ClusterIP
+---
+
+apiVersion: v1
+kind: ConfigMap
+data:
+  ALERT_SERVER_PORT: "8443"
+  PUBLIC_HUB_WEBSERVER_HOST: localhost
+  PUBLIC_HUB_WEBSERVER_PORT: "443"
+metadata:
+  annotations:
+    operator.synopsys.com/group-dependencies: ""
+  labels:
+    operator.synopsys.com/group-id: "ConfigMap"
+    app: alert
+    name: {{ .Values.instancename }}
+  name: {{ .Values.instancename }}-blackduck-alert-config
+  namespace: {{ .Values.namespace }}
+---
+
+apiVersion: v1
+kind: Secret
+data:
+  ALERT_ENCRYPTION_GLOBAL_SALT: ""
+  ALERT_ENCRYPTION_PASSWORD: ""
+metadata:
+  annotations:
+    operator.synopsys.com/group-dependencies: "ConfigMap"
+  labels:
+    operator.synopsys.com/group-id: "AlertSecret"
+    app: alert
+    name: {{ .Values.instancename }}
+  name: {{ .Values.instancename }}-alert-secret
+  namespace: {{ .Values.namespace }}
+type: Opaque
+---
+
+{{ if eq .Values.persistentstorage "True" -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  annotations:
+    operator.synopsys.com/group-dependencies: ""
+  labels:
+    operator.synopsys.com/group-id: "AlertPvc"
+    app: alert
+    name: {{ .Values.instancename }}
+  name: {{ .Values.instancename }}-alert-pvc
+  namespace: {{ .Values.namespace }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.pvcsize }}
+{{ if .Values.storageclassname }}
+  storageClassName: {{ .Values.storageclassname }}
+{{ end -}}
+---
+{{- end }}
+
+{{ if eq .Values.exposeui "True" -}}
+{{- if eq .Values.openshift "True" -}}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  labels:
+    app: alert
+    component: route
+    name: {{ .Values.instancename }}
+  name: {{ .Values.instancename }}-alert
+  namespace: {{ .Values.namespace }}
+spec:
+  port:
+    targetPort: port-8443
+  tls:
+    termination: passthrough
+  to:
+    kind: Service
+    name: {{ .Values.instancename }}-alert
+    weight: 100
+  wildcardPolicy: None
+---
+{{- else -}}
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    operator.synopsys.com/group-dependencies: "ConfigMap,AlertSecret"
+  labels:
+    operator.synopsys.com/group-id: "Alert"
+    app: alert
+    name: {{ .Values.instancename }}
+  name: {{ .Values.instancename }}-alert
+  namespace: {{ .Values.namespace }}
+spec:
+  ports:
+    - name: port-8443
+      port: 8443
+      protocol: TCP
+      targetPort: 8443
+  selector:
+    app: alert
+    name: {{ .Values.instancename }}
+  type: {{ .Values.exposedservicetype }}
+---
+{{ end }}
+{{- end }}

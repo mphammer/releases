@@ -1,0 +1,79 @@
+{{ if eq .Values.standalone "True" -}}
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  annotations:
+    operator.synopsys.com/group-dependencies: "ConfigMap"
+  labels:
+    operator.synopsys.com/group-id: "Cfssl"
+    app: alert
+    name: {{ .Values.instancename }}
+  name: {{ .Values.instancename }}-cfssl
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: 1
+  selector:
+    app: alert
+    name: {{ .Values.instancename }}
+  template:
+    metadata:
+      labels:
+        app: alert
+        name: {{ .Values.instancename }}
+      name: {{ .Values.instancename }}-cfssl
+    spec:
+      containers:
+        - envFrom:
+            - configMapRef:
+                name: {{ .Values.instancename }}-blackduck-alert-config
+          image: {{ .Values.cfsslimage }}
+          livenessProbe:
+            exec:
+              command:
+                - /usr/local/bin/docker-healthcheck.sh
+                - http://localhost:8888/api/v1/cfssl/scaninfo
+            failureThreshold: 10
+            initialDelaySeconds: 240
+            periodSeconds: 30
+            timeoutSeconds: 10
+          name: blackduck-cfssl
+          ports:
+            - containerPort: 8888
+              protocol: TCP
+          resources:
+            limits:
+              memory: {{ .Values.cfsslmem }}
+            requests:
+              memory: {{ .Values.cfsslmem }}
+          volumeMounts:
+            - mountPath: /etc/cfssl
+              name: dir-cfssl
+      dnsPolicy: ClusterFirst
+      volumes:
+        - emptyDir: {}
+          name: dir-cfssl
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    operator.synopsys.com/group-dependencies: "ConfigMap"
+  labels:
+    operator.synopsys.com/group-id: "Cfssl"
+    app: alert
+    name: {{ .Values.instancename }}
+  name: {{ .Values.instancename }}-cfssl
+  namespace: {{ .Values.namespace }}
+spec:
+  ports:
+    - name: port-8888
+      port: 8888
+      protocol: TCP
+      targetPort: 8888
+  selector:
+    app: alert
+    name: {{ .Values.instancename }}
+  type: ClusterIP
+---
+{{- end }}

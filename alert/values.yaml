@@ -1,0 +1,16 @@
+namespace: "alertspace"
+instancename: "alt"
+standalone: "True"
+alertmem: "10Mi"
+cfsslmem: "10Gi"
+openshift: "True"
+exposeui: "True"
+exposedservicetype: NodePort # NodePort | LoadBalancer
+environs:
+ - ENVIRONA: 1
+ - ENVIRONB: 2
+persistentstorage: "True"
+pvcsize: "5G"
+storageclassname: ""
+alertimage: "docker.io/blackducksoftware/blackduck-alert:4.2.0"
+cfsslimage: docker.io/blackducksoftware/blackduck-cfssl:1.0.0
