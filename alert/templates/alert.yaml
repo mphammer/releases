@@ -1,10 +1,7 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  annotations:
-    operator.synopsys.com/group-dependencies: "ConfigMap,AlertSecret"
   labels:
-    operator.synopsys.com/group-id: "Alert"
     app: alert
     name: {{ .Release.Name }}
   name: {{ .Release.Name }}-alert
@@ -102,10 +99,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  annotations:
-    operator.synopsys.com/group-dependencies: "ConfigMap,AlertSecret"
   labels:
-    operator.synopsys.com/group-id: "Alert"
     app: alert
     name: {{ .Release.Name }}
   name: {{ .Release.Name }}-alert
@@ -126,16 +120,13 @@ apiVersion: v1
 kind: ConfigMap
 data:
   {{- if .Values.enableStandalone }}
-  HUB_CFSSL_HOST: {{ .Release.Name }}-alert-cfssl
+  HUB_CFSSL_HOST: {{ .Release.Name }}-cfssl
   {{- end }}
   {{- range $key, $val := .Values.environs}}
   {{ $key }}: {{ $val | quote }}
   {{- end }}
 metadata:
-  annotations:
-    operator.synopsys.com/group-dependencies: ""
   labels:
-    operator.synopsys.com/group-id: "ConfigMap"
     app: alert
     name: {{ .Release.Name }}
   name: {{ .Release.Name }}-blackduck-alert-config
@@ -149,10 +140,7 @@ data:
   {{ $key }}: {{ $val }}
   {{- end }}
 metadata:
-  annotations:
-    operator.synopsys.com/group-dependencies: "ConfigMap"
   labels:
-    operator.synopsys.com/group-id: "AlertSecret"
     app: alert
     name: {{ .Release.Name }}
   name: {{ .Release.Name }}-alert-secret
@@ -162,11 +150,11 @@ type: Opaque
 
 {{ if .Values.enableCertificateSecret -}}
 apiVersion: v1
+kind: Secret
 data:
   WEBSERVER_CUSTOM_CERT_FILE: {{ .Values.javaKeystore }}
   WEBSERVER_CUSTOM_KEY_FILE: {{ .Values.certificate }}
   cacerts: {{ .Values.certificateKey }}
-kind: Secret
 metadata:
   labels:
     app: alert
@@ -182,10 +170,7 @@ type: Opaque
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  annotations:
-    operator.synopsys.com/group-dependencies: ""
   labels:
-    operator.synopsys.com/group-id: "AlertPvc"
     app: alert
     name: {{ .Release.Name }}
   name: {{ .Release.Name }}-alert-pvc
@@ -206,13 +191,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  annotations:
-    operator.synopsys.com/group-dependencies: "ConfigMap,AlertSecret"
   labels:
-    operator.synopsys.com/group-id: "Alert"
     app: alert
     name: {{ .Release.Name }}
-  name: {{ .Release.Name }}-alert
+  name: {{ .Release.Name }}-alert-exposed
   namespace: {{ .Release.Namespace }}
 spec:
   ports:
@@ -223,6 +205,6 @@ spec:
   selector:
     app: alert
     name: {{ .Release.Name }}
-  type: {{ .Values.exposeui.exposedServiceType }}
+  type: {{ .Values.exposedServiceType }}
 ---
 {{- end }}

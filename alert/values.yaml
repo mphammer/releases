@@ -4,17 +4,17 @@
 
 alert:
   image: "docker.io/blackducksoftware/blackduck-alert:4.2.0"
-  limitMemory: "10Mi"
-  requestMemory: "10Mi"
+  limitMemory: "2560M"
+  requestMemory: "2560M"
   nodeSelector: {}
   tolerations: []
   affinity: {}
 
-enableStandalone: false
+enableStandalone: true
 cfssl:
   image: "docker.io/blackducksoftware/blackduck-cfssl:1.0.0"
-  limitMemory: "10Mi"
-  requestMemory: "10Mi"
+  limitMemory: "640M"
+  requestMemory: "640M"
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -32,7 +32,7 @@ enablePersistentStorage: false
 pvcSize: "5G"
 storageClassName: ""
 
-exposeui: false
+exposeui: true
 exposedServiceType: NodePort # NodePort | LoadBalancer
 
 enableCertificateSecret: false
