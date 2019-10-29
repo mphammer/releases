@@ -1,4 +1,4 @@
-{{ if eq .Values.standalone "True" -}}
+{{ if .Values.enableStandalone -}}
 apiVersion: v1
 kind: ReplicationController
 metadata:
@@ -7,26 +7,26 @@ metadata:
   labels:
     operator.synopsys.com/group-id: "Cfssl"
     app: alert
-    name: {{ .Values.instancename }}
-  name: {{ .Values.instancename }}-cfssl
-  namespace: {{ .Values.namespace }}
+    name: {{ .Release.Name }}
+  name: {{ .Release.Name }}-cfssl
+  namespace: {{ .Release.Namespace }}
 spec:
   replicas: 1
   selector:
     app: alert
-    name: {{ .Values.instancename }}
+    name: {{ .Release.Name }}
   template:
     metadata:
       labels:
         app: alert
-        name: {{ .Values.instancename }}
-      name: {{ .Values.instancename }}-cfssl
+        name: {{ .Release.Name }}
+      name: {{ .Release.Name }}-cfssl
     spec:
       containers:
         - envFrom:
             - configMapRef:
-                name: {{ .Values.instancename }}-blackduck-alert-config
-          image: {{ .Values.cfsslimage }}
+                name: {{ .Release.Name }}-blackduck-alert-config
+          image: {{ .Values.cfssl.image }}
           livenessProbe:
             exec:
               command:
@@ -42,13 +42,25 @@ spec:
               protocol: TCP
           resources:
             limits:
-              memory: {{ .Values.cfsslmem }}
+              memory: {{ .Values.cfssl.limitMemory }}
             requests:
-              memory: {{ .Values.cfsslmem }}
+              memory: {{ .Values.cfssl.requestMemory }}
           volumeMounts:
             - mountPath: /etc/cfssl
               name: dir-cfssl
       dnsPolicy: ClusterFirst
+      {{- with .Values.cfssl.nodeSelector }}
+      nodeSelector:
+      {{ toYaml . | indent 2 }}
+      {{- end }}
+      {{- with .Values.cfssl.affinity }}
+      affinity:
+      {{ toYaml . | indent 2 }}
+      {{- end }}
+      {{- with .Values.cfssl.tolerations }}
+      tolerations:
+      {{ toYaml . | indent 2 }}
+      {{- end }}
       volumes:
         - emptyDir: {}
           name: dir-cfssl
@@ -62,9 +74,9 @@ metadata:
   labels:
     operator.synopsys.com/group-id: "Cfssl"
     app: alert
-    name: {{ .Values.instancename }}
-  name: {{ .Values.instancename }}-cfssl
-  namespace: {{ .Values.namespace }}
+    name: {{ .Release.Name }}
+  name: {{ .Release.Name }}-cfssl
+  namespace: {{ .Release.Namespace }}
 spec:
   ports:
     - name: port-8888
@@ -73,7 +85,7 @@ spec:
       targetPort: 8888
   selector:
     app: alert
-    name: {{ .Values.instancename }}
+    name: {{ .Release.Name }}
   type: ClusterIP
 ---
 {{- end }}

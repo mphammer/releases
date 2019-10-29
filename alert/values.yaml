@@ -1,16 +1,41 @@
-namespace: "alertspace"
-instancename: "alt"
-standalone: "True"
-alertmem: "10Mi"
-cfsslmem: "10Gi"
-openshift: "True"
-exposeui: "True"
-exposedservicetype: NodePort # NodePort | LoadBalancer
+# Values for Alert.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+alert:
+  image: "docker.io/blackducksoftware/blackduck-alert:4.2.0"
+  limitMemory: "10Mi"
+  requestMemory: "10Mi"
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+enableStandalone: false
+cfssl:
+  image: "docker.io/blackducksoftware/blackduck-cfssl:1.0.0"
+  limitMemory: "10Mi"
+  requestMemory: "10Mi"
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
 environs:
- - ENVIRONA: 1
- - ENVIRONB: 2
-persistentstorage: "True"
-pvcsize: "5G"
-storageclassname: ""
-alertimage: "docker.io/blackducksoftware/blackduck-alert:4.2.0"
-cfsslimage: docker.io/blackducksoftware/blackduck-cfssl:1.0.0
+  ALERT_SERVER_PORT: "8443"
+  PUBLIC_HUB_WEBSERVER_HOST: "localhost"
+  PUBLIC_HUB_WEBSERVER_PORT: "443"
+
+secrets:
+  ALERT_ENCRYPTION_PASSWORD: UExBQ0VIT0xERVI=
+  ALERT_ENCRYPTION_GLOBAL_SALT: UExBQ0VIT0xERVI=
+
+enablePersistentStorage: false
+pvcSize: "5G"
+storageClassName: ""
+
+exposeui: false
+exposedServiceType: NodePort # NodePort | LoadBalancer
+
+enableCertificateSecret: false
+javaKeystore: UExBQ0VIT0xERVI=
+certificate: UExBQ0VIT0xERVI=
+certificateKey: UExBQ0VIT0xERVI=
